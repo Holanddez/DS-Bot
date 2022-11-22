@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ui import View, Select
 from discord import File
-from easy_pil import Editor, load_image_async, Font
+from easy_pil import Editor, load_image_async, load_image, Font
 import requests
 
 class MalSubmenu(Select):
@@ -78,6 +78,21 @@ class MAL(commands.Cog):
             return "Resource not found. Please, try again."
         else:
             return response_data
+
+    def get_favourites(self, data: dict, showType: str):
+        favs = []
+        for i in range(len(data['favorites'][showType][:5])):
+            show = load_image(str(data['favorites'][showType][i]['images']['webp']['image_url']))
+            favs.append(show)
+        return favs
+
+    def generate_favs_image(self, bg: Editor, posX: int, showsList: list):
+        pic_pos = -200
+        for show in showsList:
+            pic_pos += 200
+            anime_pic = Editor(show).resize((150, 150)).circle_image()
+            bg.paste(anime_pic, (posX, 70 + pic_pos))
+            bg.ellipse((posX, 70 + pic_pos), 150, 150, outline='white', stroke_width=3)
                 
     @commands.command()
     async def malAnime(self, ctx, *, anime):
@@ -139,31 +154,11 @@ class MAL(commands.Cog):
             bg.text((50, 960), f"Chapters Read: {response['statistics']['manga']['chapters_read']}", color="white", font=small_poppins, align="left")
 
             #favorites
-            ## split it in 2 funcs, I will do this later
-            fav_animes = []
-            for i in range(len(response['favorites']['anime'][:5])):
-                anime = await load_image_async(str(response['favorites']['anime'][i]['images']['webp']['image_url']))
-                fav_animes.append(anime)
-            
-            pic_pos = -200
-            for anime in fav_animes:
-                pic_pos += 200
-                anime_pic = Editor(anime).resize((150, 150)).circle_image()
-                bg.paste(anime_pic, (1400, 70 + pic_pos))
-                bg.ellipse((1400, 70 + pic_pos), 150, 150, outline='white', stroke_width=3)
+            fav_animes = self.get_favourites(response, 'anime')
+            self.generate_favs_image(bg=bg, posX=1400, showsList=fav_animes)
 
-            fav_mangas = []
-            for i in range(len(response['favorites']['manga'][:5])):
-                manga = await load_image_async(str(response['favorites']['manga'][i]['images']['webp']['image_url']))
-                fav_mangas.append(manga)
-
-            pic_pos = -200
-            for manga in fav_mangas:
-                pic_pos += 200
-                manga_pic = Editor(manga).resize((150, 150)).circle_image()
-                bg.paste(manga_pic, (1600, 70 + pic_pos))
-                bg.ellipse((1600, 70 + pic_pos), 150, 150, outline='white', stroke_width=3)
-            ##
+            fav_mangas = self.get_favourites(response, 'manga')
+            self.generate_favs_image(bg=bg, posX=1600, showsList=fav_mangas)
 
             file = File(fp=bg.image_bytes, filename="welcome.jpg")
             await ctx.send(f"Profile URL: <{response['url']}>", file=file)
@@ -173,4 +168,3 @@ class MAL(commands.Cog):
 
 def setup(bot):
     bot.add_cog(MAL(bot))
-    
