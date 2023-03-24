@@ -139,7 +139,6 @@ class MAL(commands.Cog):
             #favorites
             self.get_favorites(response, 'anime', bg=bg, posX=1400)
             self.get_favorites(response, 'manga', bg=bg, posX=1600)
-            #changed to 1 func only ^ don't forget to delete this comment b4 commit
 
             file = File(fp=bg.image_bytes, filename="welcome.jpg")
             await ctx.send(f"Profile URL: <{response['url']}>", file=file)
