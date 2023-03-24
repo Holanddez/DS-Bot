@@ -21,39 +21,24 @@ class MalSubmenu(Select):
         )
         embed.set_footer(text="Nebrot by Holanddez")
         embed.set_image(url=anime['images']['jpg']['large_image_url'])
-        embed.add_field(name='Type', value=anime['type'], inline='false')
-        try:
-            embed.add_field(name='Episodes', value=anime['episodes'], inline='false')
-            embed.add_field(name='Aired', value=anime['aired']['string'], inline='false')
-            embed.add_field(name='Rating', value=anime['rating'], inline='false')
-        except KeyError:
-            embed.add_field(name='Chapters', value=anime['chapters'], inline='false')
-            embed.add_field(name='Volumes', value=anime['volumes'], inline='false')
-            embed.add_field(name='Published', value=anime['published']['string'], inline='false')
-        embed.add_field(name='Status', value=anime['status'], inline='false')
-        embed.add_field(name='Score', value=anime['score'], inline='false')
-        embed.add_field(name='MyAnimeList', value=anime['url'], inline='false')
+
+        keys_list = ['type', 'episodes', 'aired', 'rating', 'chapters', 'volumes', 'published', 'status', 'score', 'url']
+        for key in keys_list:
+            if key in anime.keys():
+                if key == 'aired' or key =='published':
+                    embed.add_field(name=key.capitalize(), value=anime[key]['string'], inline='false')
+                else:
+                    embed.add_field(name=key.capitalize(), value=anime[key], inline='false')
 
         return embed
     
     async def callback(self, interaction: discord.Interaction):
         self.disabled=True
         await interaction.response.edit_message(view=self.view)
-        if self.values[0] == "1":
-            embed = self.mal_embed(self.data['data'][0])
-            await interaction.followup.send(embed=embed)
-        if self.values[0] == "2":
-            embed = self.mal_embed(self.data['data'][1])
-            await interaction.followup.send(embed=embed)
-        if self.values[0] == "3":
-            embed = self.mal_embed(self.data['data'][2])
-            await interaction.followup.send(embed=embed)
-        if self.values[0] == "4":
-            embed = self.mal_embed(self.data['data'][3])
-            await interaction.followup.send(embed=embed)
-        if self.values[0] == "5":
-            embed = self.mal_embed(self.data['data'][4])
-            await interaction.followup.send(embed=embed)
+        for i in range(6):
+            if self.values[0] == str(i+1):
+                embed = self.mal_embed(self.data['data'][i])
+                await interaction.followup.send(embed=embed)
         
 class MAL(commands.Cog):
     def __init__(self, bot):
@@ -79,19 +64,13 @@ class MAL(commands.Cog):
         else:
             return response_data
 
-    def get_favourites(self, data: dict, showType: str):
-        favs = []
+    def get_favorites(self, data: dict, showType: str, bg: Editor, posX: int):
+        pic_pos = -200
         for i in range(len(data['favorites'][showType][:5])):
             show = load_image(str(data['favorites'][showType][i]['images']['webp']['image_url']))
-            favs.append(show)
-        return favs
-
-    def generate_favs_image(self, bg: Editor, posX: int, showsList: list):
-        pic_pos = -200
-        for show in showsList:
             pic_pos += 200
-            anime_pic = Editor(show).resize((150, 150)).circle_image()
-            bg.paste(anime_pic, (posX, 70 + pic_pos))
+            show_pic = Editor(show).resize((150, 150)).circle_image()
+            bg.paste(show_pic, (posX, 70 + pic_pos))
             bg.ellipse((posX, 70 + pic_pos), 150, 150, outline='white', stroke_width=3)
                 
     @commands.command()
@@ -138,27 +117,29 @@ class MAL(commands.Cog):
 
             bg.text((940, 750), f"{response['username'][:25]}", color="white", font=poppins, align="center")
 
+            #keys list
+            keys_list = ['completed', 'mean_score', 'total_entries', 'episodes_watched', 'volumes_read', 'chapters_read']
+
             #anime statistics
             bg.text((210, 100), "Anime", color="yellow", font=ms, align="center")
-            bg.text((50, 200), f"Completed: {response['statistics']['anime']['completed']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 280), f"Mean Score: {response['statistics']['anime']['mean_score']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 360), f"Total Entries: {response['statistics']['anime']['total_entries']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 440), f"Eps Watched: {response['statistics']['anime']['episodes_watched']}", color="white", font=small_poppins, align="left")
+            text_pos = 200
+            for key in response['statistics']['anime']:
+                if key in keys_list:
+                    bg.text((50, text_pos), f"{key.replace('_', ' ').capitalize()}: {response['statistics']['anime'][key]}", color="white", font=small_poppins, align="left")
+                    text_pos += 80
 
             #manga statistics
             bg.text((210, 540), "Manga", color="yellow", font=ms, align="center")
-            bg.text((50, 640), f"Completed: {response['statistics']['manga']['completed']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 720), f"Mean Score: {response['statistics']['manga']['mean_score']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 800), f"Total Entries: {response['statistics']['manga']['total_entries']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 880), f"Volumes Read: {response['statistics']['manga']['volumes_read']}", color="white", font=small_poppins, align="left")
-            bg.text((50, 960), f"Chapters Read: {response['statistics']['manga']['chapters_read']}", color="white", font=small_poppins, align="left")
+            text_pos = 640
+            for key in response['statistics']['manga']:
+                if key in keys_list:
+                    bg.text((50, text_pos), f"{key.replace('_', ' ').capitalize()}: {response['statistics']['manga'][key]}", color="white", font=small_poppins, align="left")
+                    text_pos += 80
 
             #favorites
-            fav_animes = self.get_favourites(response, 'anime')
-            self.generate_favs_image(bg=bg, posX=1400, showsList=fav_animes)
-
-            fav_mangas = self.get_favourites(response, 'manga')
-            self.generate_favs_image(bg=bg, posX=1600, showsList=fav_mangas)
+            self.get_favorites(response, 'anime', bg=bg, posX=1400)
+            self.get_favorites(response, 'manga', bg=bg, posX=1600)
+            #changed to 1 func only ^ don't forget to delete this comment b4 commit
 
             file = File(fp=bg.image_bytes, filename="welcome.jpg")
             await ctx.send(f"Profile URL: <{response['url']}>", file=file)
