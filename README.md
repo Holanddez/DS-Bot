@@ -7,7 +7,7 @@ that I wrote.
 <br>
 Im not using slash commands mainly because I don't like it so much, perhaps I will add it later on.
 <br>
-It still under development, so is missing somethings.
+It still under development, so it's missing somethings.
 <br>
 <br>
 <a href="https://emoji.gg/emoji/1887_python">
